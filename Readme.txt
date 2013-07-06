@@ -7,7 +7,7 @@ defaults to files in ./source and put composite image in ./result
 
 Current options
 
-Usage: ruby blend.rb [options]
+Usage: ruby blenderrr.rb [options]
 
     -i, --index FILE                 start at INDEX index
     -s, --start FILE                 start at FILE file name
@@ -16,6 +16,9 @@ Usage: ruby blend.rb [options]
     -n, --limit NUM                  limit to the first NUM files
     -m, --skip NUM                   Only process every NUM files (skip the rest)
     -x, --fx EFFECT                  composite EFFECT lighten, darken, multiply
+    -a, --accumulate                 save each composite frame in-progress as a numbered.jpg
+    -G, --gif_accumulate             make a gif of each compisted frame (accumulate)
+    -g, --gif                        make a gif of each frame
+    -p, --progress N                 Update a progress.jpg image every N frames. None if 0
 
     -h, --help                       Show this help message.
-

@@ -4,8 +4,11 @@
 require 'RMagick'
 require 'optparse'
 
+progress_n=20
+
 argstr = ARGV*" " 
-options = {:args=>argstr,:start_index=>0,:folder=>"source",:outfolder=>"result", :size => 2, :limit=>25,:skip=>0,:fx_name=>"lighten"}
+options = {:args=>argstr,:write_progress=>true,:start_index=>0,:folder=>"source",:outfolder=>"result", :size => 2,
+      :limit=>25,:skip=>0,:fx_name=>"lighten", :make_gif=>false, :gif_size=>[640,480],:progress=>20}
 
   ARGV.options do |opts|
     script_name = File.basename($0)
@@ -41,6 +44,26 @@ options = {:args=>argstr,:start_index=>0,:folder=>"source",:outfolder=>"result",
       options[:fx_name] = fx
     end
     
+    opts.on("-a","--accumulate","save each composite frame in-progress as a numbered.jpg") do |fx|
+      options[:accumulate] = true
+    end
+    
+
+    
+    opts.on("-G","--gif_accumulate","make a gif of each compisted frame (accumulate)") do |accumulate|
+      options[:gif_accumulate] = true
+      options[:make_gif] = true
+
+    end
+    
+    opts.on("-g","--gif","make a gif of each frame") do |accumulate|
+      options[:make_gif] = true
+    end
+    
+    opts.on("-p","--progress N","Update a progress.jpg image every N frames. None if 0") do |prog|
+      options[:write_progress] = prog.to_i
+    end
+    
     
     opts.separator ""
 
@@ -49,21 +72,26 @@ options = {:args=>argstr,:start_index=>0,:folder=>"source",:outfolder=>"result",
     opts.parse!
   end
 
-
+make_gif=options[:make_gif]
+gif_accumulate = options[:gif_accumulate]
+accumulate= options[:accumulate]
 limit = options[:limit]
 skip=options[:skip]
 start_file = options[:start_file]
 folder = options[:folder]
 outfolder=options[:outfolder]
-
-n = 0
-#filenames = ["DSC00909.JPG","DSC01171.JPG","DSC01295.JPG"]
+write_progress = options[:progress] > 0 ? options[:progress] : false
+progress_n = write_progress
+gif_skip = 3 # skip some of the composited frames (NOT array index)
 
 filenames = Dir.new(folder).to_a
 # filter out non JPGs
 filenames = filenames.find_all{|item| item =~ /.jpg/i}
 puts "look for files in '#{folder}' and write to '#{outfolder}'"
-
+puts "write PROGRESS image every #{progress_n} frames" if write_progress
+puts "ACCUMULATE images to #{outfolder}/accumulate" if accumulate
+puts "MAKE #{options[:gif_size].join("x")} GIF" if make_gif
+puts "Accumulate the GIF frames" if gif_accumulate 
 puts "#{filenames.size} total files"
 if(start_file)
   idx = filenames.index(start_file)
@@ -99,8 +127,10 @@ puts "FX = #{fx}"
 
 
 
-ncount = 0
+gif = Magick::ImageList.new if(make_gif)
 
+
+ncount = 0
 begin
   start = Time.now
   #dst = Magick::Image.new(3344,2224){self.background_color = 'black'}
@@ -122,12 +152,23 @@ begin
   
     src = Magick::Image.read(fname).first
     dst.composite!(src, Magick::CenterGravity, fx)
+  
+    
+   
+    dst.write("#{outfolder}/accumulate/#{ncount}.jpg")  if accumulate
+      
+    if make_gif && (ncount%gif_skip==0)
+        frame = gif_accumulate ? dst.copy  : src.copy
+        puts "GIF frame"
+        gif << frame.resize(*options[:gif_size]) 
+        frame.destroy!
+    end
     
     src.destroy! # don't leak memory
     
     ncount+=1
-  
-    if(ncount % 20 == 0)
+    
+    if(write_progress && ncount % progress_n == 0)
       puts "Write progress.jpg"
           dst.write("#{outfolder}/progress.jpg")   
     end
@@ -154,6 +195,20 @@ File.open("#{outfolder}/log.txt", 'a') {|f| f.write("\n");f.write(options.to_s) 
 
 dst.write(outname)
 
+
+if(make_gif)
+  
+  gname = outname.gsub(".jpg",".gif")
+  
+  puts "Writing GIF to #{gname}"
+#  gif.compression = Magick::LZWCompression
+  gif = gif.quantize(256, Magick::RGBColorspace, Magick::NoDitherMethod)
+
+  gif=gif.optimize_layers(Magick::CoalesceLayer)
+  gif = gif.optimize_layers(Magick::OptimizeLayer)
+  gif.write(gname)
+  
+end
 
 
 
