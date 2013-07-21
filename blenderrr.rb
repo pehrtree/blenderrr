@@ -8,7 +8,7 @@ progress_n=20
 
 argstr = ARGV*" " 
 options = {:args=>argstr,:write_progress=>true,:start_index=>0,:folder=>"source",:outfolder=>"result", :size => 2,
-      :limit=>25,:skip=>0,:fx_name=>"lighten", :make_gif=>false, :gif_size=>[640,480],:progress=>20}
+      :limit=>25,:skip=>0,:fx_name=>"lighten", :make_gif=>false, :gif_size=>[640,480],:progress=>20,:reverse=>false}
 
   ARGV.options do |opts|
     script_name = File.basename($0)
@@ -65,6 +65,10 @@ options = {:args=>argstr,:write_progress=>true,:start_index=>0,:folder=>"source"
     end
     
     
+    opts.on("-r","--reverse","reverse order of images before blending ") do |fx|
+      options[:reverse] = true
+    end
+    
     opts.separator ""
 
     opts.on("-h", "--help", "Show this help message.") { puts opts; exit }
@@ -82,7 +86,7 @@ folder = options[:folder]
 outfolder=options[:outfolder]
 write_progress = options[:progress] > 0 ? options[:progress] : false
 progress_n = write_progress
-gif_skip = 3 # skip some of the composited frames (NOT array index)
+gif_skip = 3*skip # skip some of the composited frames (NOT array index)
 
 filenames = Dir.new(folder).to_a
 # filter out non JPGs
@@ -135,6 +139,9 @@ begin
   start = Time.now
   #dst = Magick::Image.new(3344,2224){self.background_color = 'black'}
   dst = Magick::Image.read("#{folder}/#{filenames.first}").first
+  
+ filenames.reverse! if options[:reverse]==true
+
  filenames.each_with_index do |f,n|
      fname = "#{folder}/#{f}"
 
@@ -185,8 +192,8 @@ sf = filenames.first.split(".").first
 ef = filenames.last.split(".").first
 skipstr = skip && skip>0 ? "mod_#{skip}" : ""
 fxstr = options[:fx_name]!="lighten"? "__#{options[:fx_name]}" : ""
-
-outname = "#{outfolder}/#{sf}__#{ef}__#{filenames.size}_#{skipstr}_#{ncount}#{fxstr}.jpg"
+revstr = options[:reverse]==true ? "_reversed":""
+outname = "#{outfolder}/#{sf}__#{ef}__#{filenames.size}_#{skipstr}_#{ncount}#{fxstr}#{revstr}.jpg"
 puts "Writing #{outname}"
 
 options[:outname]=outname

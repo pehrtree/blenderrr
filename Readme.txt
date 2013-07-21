@@ -1,5 +1,7 @@
 Use RMagick to composite / blend a folder of images together. Defaults to the Lighten operation which is useful for pics of fireworks
 
+http://pehrhovey.net/blog/2013/07/timelapse-image-compositing-with-ruby/
+
 brew install ImageMagick
 gem install rmagick
 
